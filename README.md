@@ -146,8 +146,11 @@ order**, the full contents of:
 
 1. [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — families, children, weekly lists/words, practice sessions/answers, subscriptions, analytics, admins.
 2. [`supabase/migrations/0002_mastery_and_readiness.sql`](supabase/migrations/0002_mastery_and_readiness.sql) — the `word_mastery` table, `weekly_lists.test_date`, `practice_sessions.practice_type`, `families.parent_language`, and the richer `admin_overview()`.
+3. [`supabase/migrations/0003_subscriptions_insert_policy.sql`](supabase/migrations/0003_subscriptions_insert_policy.sql) — adds the missing RLS INSERT policy for `subscriptions` (needed by the guest→cloud migration's fallback path).
+4. [`supabase/migrations/0004_grants.sql`](supabase/migrations/0004_grants.sql) — grants table-level SELECT/INSERT/UPDATE/DELETE to the `authenticated` role on every app table. RLS policies (steps 1-3) still gate which *rows* are reachable; this is the coarser table-level grant Postgres requires before RLS is even evaluated. Some Supabase projects' default privileges don't automatically cover tables created via the SQL Editor — if you hit `permission denied for table ...` (Postgres error 42501) after running 1-3, this fixes it.
+5. [`supabase/migrations/0005_fix_consume_free_answer_ambiguity.sql`](supabase/migrations/0005_fix_consume_free_answer_ambiguity.sql) — fixes an ambiguous `status` column reference in `consume_free_answer()` (Postgres error 42702) that broke every answer check in Practice Test under cloud mode. Confirmed live against a real project; never caught before because the SQL had never run against real Postgres.
 
-Both are also written to work with the Supabase CLI if you prefer:
+All five are also written to work with the Supabase CLI if you prefer:
 
 ```bash
 supabase link --project-ref <your-project-ref>
