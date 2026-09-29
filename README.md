@@ -37,8 +37,9 @@ had no accounts, no cloud sync, and no subscription model.
     lists, history, settings) still works.
   - An **Admin Panel**, gated by a real `admins` table (not a hidden route),
     can flip a test family between Free / Trial / Premium.
-- **Not built yet, on purpose:** real payments (Stripe), real OCR for photo
-  import, and anything for teachers/schools/classrooms. See §13.
+- **Not built yet, on purpose:** real payments (Stripe), and anything for
+  teachers/schools/classrooms. See §13. (Real OCR/Vision for photo import
+  **is** connected — see §4 "Photo Import (OCR/Vision)".)
 
 ## 2. Architecture
 
@@ -184,6 +185,48 @@ signing in once, run in the SQL editor:
 insert into admins (user_id)
 values ('<your auth.users id, from the Authentication tab>');
 ```
+
+### Photo Import (OCR/Vision)
+
+Turning a photo of a spelling sheet into words (`extractSpellingListFromImage()`
+in [`src/domains/weeklyLists/photoImport.ts`](src/domains/weeklyLists/photoImport.ts))
+is real, not a mock — it calls a Supabase Edge Function
+([`supabase/functions/extract-spelling-list/index.ts`](supabase/functions/extract-spelling-list/index.ts))
+that talks to an OpenAI vision model server-side. The OpenAI API key never
+reaches the browser; it only ever lives as a Supabase secret.
+
+1. Create an API key at
+   [platform.openai.com/api-keys](https://platform.openai.com/api-keys) and
+   make sure the account has billing/credits — an OpenAI account with no
+   credits fails every request with `insufficient_quota`.
+2. Deploy the function and set the secret:
+   ```bash
+   supabase functions deploy extract-spelling-list
+   supabase secrets set OPENAI_API_KEY=sk-...
+   ```
+3. Optional — override the model without touching code:
+   ```bash
+   supabase secrets set OPENAI_VISION_MODEL=gpt-5.4-mini   # this is already the default
+   ```
+
+The function is deployed **with JWT verification on** (no `--no-verify-jwt`),
+so an unauthenticated request is rejected by the Supabase gateway before the
+function code ever runs. On top of that, it re-checks the caller's own
+`subscriptions.status` (must be `trial` or `premium`) so the Photo Import
+paywall can't be bypassed by calling the function directly instead of going
+through the app's UI gate — see the comment at the top of `index.ts` for the
+full design. Every field in the model's JSON response is validated/clamped
+(word count, word length, date format, confidence range) before it's
+returned to the client; a photo with no legible words returns a clear `422`
+instead of an empty or garbage word list.
+
+Tested live against real spelling-sheet photos (one clean printed list, one
+messy 4th-grade cursive test) — both extracted the full word list correctly
+with the review screen's existing manual-correction UI catching the handful
+of words the model misread on the cursive one. Extraction quality depends
+entirely on the configured `OPENAI_VISION_MODEL`; if a given model
+underperforms on handwriting, swap it via the secret above with no code
+changes.
 
 ## 5. Configuring sign-in
 
@@ -358,13 +401,6 @@ Nothing is blocking local development or guest-mode use. To go further:
   the exact Stripe integration shape: a Checkout Session edge function, a
   webhook to update `subscriptions`, and a Billing Portal session). No Stripe
   keys exist anywhere in this repo.
-- **Real Photo → Words.** `photoImport.ts`'s `extractSpellingListFromImage()`
-  is a clearly labeled mock (returns a fixed sample word list — plus `null`
-  for the detected title/test date/confidence it's shaped to support — after
-  a simulated delay) so the review/edit/confirm UI, and the test-date
-  pre-fill, could be built and tested today. The function's doc comment
-  spells out exactly where to plug in a real OCR/vision call — no API key
-  invented.
 - **Example sentences.** `weekly_words.example_sentence` and
   `speakTestPrompt()` exist in the schema/speech service (spec §25/§26) but
   no screen generates or shows a sentence yet — deliberately not blocking

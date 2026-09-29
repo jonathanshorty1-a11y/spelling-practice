@@ -49,6 +49,7 @@ export function AddWeeklyWordsScreen() {
   const [analyzing, setAnalyzing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lowConfidence, setLowConfidence] = useState(false)
 
   const preview = reviewWords ?? parseWordsInput(rawText)
 
@@ -61,11 +62,12 @@ export function AddWeeklyWordsScreen() {
     try {
       const result = await extractSpellingListFromImage(file)
       setReviewWords(result.words)
+      setLowConfidence(result.confidence != null && result.confidence < 0.7)
       if (result.detectedTitle) setTitle(result.detectedTitle)
       if (result.detectedTestDate) setTestDate(result.detectedTestDate)
       trackEvent(mode, 'photo_import_completed', { childId, wordCount: result.words.length }, family?.id ?? null)
-    } catch {
-      setError('Could not read that photo. Try again or paste the words instead.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not read that photo. Try again or paste the words instead.')
     } finally {
       setAnalyzing(false)
     }
@@ -234,6 +236,11 @@ export function AddWeeklyWordsScreen() {
             <p className="pill" style={{ alignSelf: 'flex-start' }}>
               We found {reviewWords.length} words
             </p>
+            {lowConfidence && (
+              <p className="muted" style={{ margin: 0 }}>
+                ⚠️ The photo wasn't very clear — please double-check these words before saving.
+              </p>
+            )}
             <div className="card stack">
               {preview.map((word, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -247,7 +254,13 @@ export function AddWeeklyWordsScreen() {
                 + Add word
               </button>
             </div>
-            <button className="btn btn-outline" onClick={() => setReviewWords(null)}>
+            <button
+              className="btn btn-outline"
+              onClick={() => {
+                setReviewWords(null)
+                setLowConfidence(false)
+              }}
+            >
               Start over
             </button>
           </div>

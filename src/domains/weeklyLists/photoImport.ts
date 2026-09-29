@@ -1,46 +1,79 @@
 /**
- * Photo → Words. No OCR/vision service is connected yet — this is a clearly
- * labeled mock so the UI/UX (review, edit, confirm, date suggestion) can be
- * fully built and tested today. To connect a real service later:
+ * Photo → Words, via a Supabase Edge Function (`extract-spelling-list`) that
+ * calls an OpenAI vision model server-side. The OpenAI API key never reaches
+ * the browser — it's a Supabase secret the Edge Function reads from its own
+ * environment. See supabase/functions/extract-spelling-list/index.ts for the
+ * full server-side implementation, prompt, and response validation.
  *
- *   1. Send `file` to your OCR/vision endpoint (e.g. OpenAI's vision models,
- *      or Google Cloud Vision's text + document detection) from a small
- *      server function — never call a vision API with a secret key directly
- *      from the browser.
- *   2. Parse the returned text with `parseWordsInput` from ./wordParsing —
- *      it already handles one-word-per-line, commas, and duplicates.
- *   3. If the sheet has a visible title ("Week 4 Spelling List") or a date
- *      ("Test: Friday, Oct 3"), have the real service return those as
- *      `detectedTitle` / `detectedTestDate` (ISO yyyy-mm-dd) so
- *      AddWeeklyWordsScreen can pre-fill them — it already reads both.
- *   4. Replace the body of this function with that call. Nothing else in
- *      the app needs to change: AddWeeklyWordsScreen only depends on this
- *      function's return shape.
+ * One-time setup (Supabase CLI):
+ *   supabase functions deploy extract-spelling-list
+ *   supabase secrets set OPENAI_API_KEY=sk-...
+ *   supabase secrets set OPENAI_VISION_MODEL=gpt-5.4-mini   # optional — this is already the default
  *
- * No API key is invented or hardcoded here — do not add one without asking.
+ * Photo Import is gated behind a trial/premium subscription (canUsePhotoImport
+ * in entitlements.ts), which only exists in cloud mode — so `supabase` is
+ * always configured by the time this runs for a real user.
  */
+
+import { supabase } from '../../lib/supabaseClient'
 
 export interface ExtractSpellingListResult {
   words: string[]
   detectedTitle: string | null
   /** ISO date string (yyyy-mm-dd), or null if no date was found on the sheet. */
   detectedTestDate: string | null
-  /** 0-1, or null for the mock (which doesn't simulate confidence). */
+  /** 0-1 confidence from the vision model, or null if unavailable. */
   confidence: number | null
-  /** True for the mock implementation — screens can show a small "demo" hint. */
-  isMock: true
+  /** Always false now that a real vision provider is connected. */
+  isMock: boolean
 }
 
-const MOCK_DETECTED_WORDS = ['climb', 'height', 'drive', 'wildlife', 'sigh', 'fright']
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      const commaIndex = result.indexOf(',')
+      resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result)
+    }
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read the selected file.'))
+    reader.readAsDataURL(file)
+  })
+}
 
-export async function extractSpellingListFromImage(_file: File): Promise<ExtractSpellingListResult> {
-  // Simulate processing time so the loading state is testable.
-  await new Promise((resolve) => setTimeout(resolve, 1200))
+/** Pulls the Edge Function's `{ error: "..." }` body out of a supabase-js FunctionsError, if present. */
+async function extractErrorMessage(error: unknown): Promise<string> {
+  const context = (error as { context?: Response } | null)?.context
+  if (context && typeof context.json === 'function') {
+    try {
+      const body = await context.json()
+      if (typeof body?.error === 'string') return body.error
+    } catch {
+      // fall through to the generic message below
+    }
+  }
+  return 'Could not read that photo. Try again or paste the words instead.'
+}
+
+export async function extractSpellingListFromImage(file: File): Promise<ExtractSpellingListResult> {
+  if (!supabase) {
+    throw new Error('Photo Import requires a signed-in account.')
+  }
+
+  const imageBase64 = await fileToBase64(file)
+  const { data, error } = await supabase.functions.invoke('extract-spelling-list', {
+    body: { imageBase64, mimeType: file.type || 'image/jpeg' },
+  })
+
+  if (error) {
+    throw new Error(await extractErrorMessage(error))
+  }
+
   return {
-    words: MOCK_DETECTED_WORDS,
-    detectedTitle: null,
-    detectedTestDate: null,
-    confidence: null,
-    isMock: true,
+    words: Array.isArray(data?.words) ? data.words : [],
+    detectedTitle: typeof data?.detectedTitle === 'string' ? data.detectedTitle : null,
+    detectedTestDate: typeof data?.detectedTestDate === 'string' ? data.detectedTestDate : null,
+    confidence: typeof data?.confidence === 'number' ? data.confidence : null,
+    isMock: false,
   }
 }
