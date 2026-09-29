@@ -1,0 +1,50 @@
+{
+  "readiness.needs_practice": "Needs Practice",
+  "readiness.almost_ready": "Almost Ready",
+  "readiness.ready_for_test": "Ready for Test",
+
+  "dashboard.masteredOf": "{mastered} / {total} words mastered",
+  "dashboard.needsPractice": "{count} words need practice",
+  "dashboard.practiceWeakWords": "Practice Weak Words",
+  "dashboard.viewProgress": "View Progress",
+  "dashboard.quickPractice": "Quick Practice",
+  "dashboard.recommendedMinutes": "Recommended: a {minutes}-minute practice tonight",
+  "dashboard.testDate": "Spelling test: {date}",
+  "dashboard.lastPractice": "Last practice: {when}",
+  "dashboard.noListYet": "Add this week's words to get started.",
+  "dashboard.readyMessage": "{name} is ready for {date} ✅",
+  "dashboard.readyDetail": "{mastered} / {total} words mastered",
+  "dashboard.reviewSuggested": "{count} words recommended for a quick review",
+
+  "progress.mastered": "Mastered",
+  "progress.almostMastered": "Almost Mastered",
+  "progress.learning": "Learning",
+  "progress.notPracticed": "Not Practiced",
+
+  "practiceComplete.title": "Practice complete.",
+  "practiceComplete.improved": "{count} words improved.",
+  "practiceComplete.stillNeeded": "{count} words still need practice.",
+  "practiceComplete.readiness": "Readiness: {status}",
+
+  "parentArea.title": "Parent Area",
+  "parentArea.children": "Children",
+  "parentArea.lists": "Lists",
+  "parentArea.progress": "Progress",
+  "parentArea.account": "Account",
+  "parentArea.subscription": "Subscription",
+  "parentArea.settings": "Settings",
+
+  "settings.parentLanguage": "Parent Language",
+  "settings.parentLanguageHint": "This changes the language of Parent Area only — your child always practices in English.",
+
+  "subscription.statusLabel": "Status",
+  "subscription.trialDaysLeft": "{days} days left in trial",
+  "subscription.freeAnswers": "Free practice: {used} / {limit} answers used",
+  "subscription.upgrade": "Upgrade to Premium",
+
+  "test.whenIsTest": "When is the spelling test?",
+  "test.friday": "Friday",
+  "test.tomorrow": "Tomorrow",
+  "test.chooseDate": "Choose Date",
+  "test.notSure": "Not Sure"
+}

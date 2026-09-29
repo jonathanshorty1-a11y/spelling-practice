@@ -1,0 +1,50 @@
+{
+  "readiness.needs_practice": "Necesita Práctica",
+  "readiness.almost_ready": "Casi Listo",
+  "readiness.ready_for_test": "Listo para el Examen",
+
+  "dashboard.masteredOf": "{mastered} / {total} palabras dominadas",
+  "dashboard.needsPractice": "Le faltan {count} palabras por dominar",
+  "dashboard.practiceWeakWords": "Practicar palabras difíciles",
+  "dashboard.viewProgress": "Ver progreso",
+  "dashboard.quickPractice": "Práctica rápida",
+  "dashboard.recommendedMinutes": "Recomendamos una práctica de {minutes} minutos esta noche",
+  "dashboard.testDate": "Examen de spelling: {date}",
+  "dashboard.lastPractice": "Última práctica: {when}",
+  "dashboard.noListYet": "Agrega las palabras de esta semana para comenzar.",
+  "dashboard.readyMessage": "{name} está lista para el {date} ✅",
+  "dashboard.readyDetail": "{mastered} / {total} palabras dominadas",
+  "dashboard.reviewSuggested": "Se recomienda repasar {count} palabras",
+
+  "progress.mastered": "Dominadas",
+  "progress.almostMastered": "Casi dominadas",
+  "progress.learning": "Aprendiendo",
+  "progress.notPracticed": "Sin practicar",
+
+  "practiceComplete.title": "Práctica completada.",
+  "practiceComplete.improved": "{count} palabras mejoraron.",
+  "practiceComplete.stillNeeded": "{count} palabras todavía necesitan práctica.",
+  "practiceComplete.readiness": "Preparación: {status}",
+
+  "parentArea.title": "Área de Padres",
+  "parentArea.children": "Hijos",
+  "parentArea.lists": "Listas",
+  "parentArea.progress": "Progreso",
+  "parentArea.account": "Cuenta",
+  "parentArea.subscription": "Suscripción",
+  "parentArea.settings": "Ajustes",
+
+  "settings.parentLanguage": "Idioma del padre",
+  "settings.parentLanguageHint": "Esto cambia el idioma solo del Área de Padres — tu hijo siempre practica en inglés.",
+
+  "subscription.statusLabel": "Estado",
+  "subscription.trialDaysLeft": "Quedan {days} días de prueba",
+  "subscription.freeAnswers": "Práctica gratis: {used} / {limit} respuestas usadas",
+  "subscription.upgrade": "Mejorar a Premium",
+
+  "test.whenIsTest": "¿Cuándo es el examen de spelling?",
+  "test.friday": "Viernes",
+  "test.tomorrow": "Mañana",
+  "test.chooseDate": "Elegir fecha",
+  "test.notSure": "No estoy seguro"
+}
