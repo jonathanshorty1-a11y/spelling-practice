@@ -4,13 +4,14 @@ import { useFamily } from '../family/FamilyContext'
 import { getActiveListForChild } from '../weeklyLists/weeklyListsService'
 import { shuffle, spellOutLoud } from '../practice/practiceLogic'
 import { speakLetters, speakWord } from '../speech/speechService'
+import { startSession, completeSession } from '../practice/practiceService'
 import { ProgressBar } from '../../components/ProgressBar'
 import { themeNameForColor } from '../../lib/theme'
 
 export function StudyScreen() {
   const { childId } = useParams<{ childId: string }>()
   const navigate = useNavigate()
-  const { mode, children } = useFamily()
+  const { mode, family, children } = useFamily()
   const child = children.find((c) => c.id === childId)
 
   const [words, setWords] = useState<string[] | null>(null)
@@ -24,6 +25,34 @@ export function StudyScreen() {
       setWords(result ? result.words.map((w) => w.word) : [])
     })
   }, [mode, childId])
+
+  // Log that a study session happened (practice_type: 'study') — not
+  // scored (no correct/incorrect concept in Study Mode), so it's logged as
+  // a single completed session the moment the child opens this screen with
+  // words to browse, rather than instrumenting every Listen/Next tap.
+  useEffect(() => {
+    if (!childId || !family || !words || words.length === 0) return
+    let cancelled = false
+    ;(async () => {
+      const active = await getActiveListForChild(mode, childId)
+      if (!active || cancelled) return
+      const session = await startSession(mode, {
+        familyId: family.id,
+        childId,
+        listId: active.list.id,
+        mode: 'full',
+        practiceType: 'study',
+        totalWords: active.words.length,
+      })
+      if (cancelled) return
+      await completeSession(mode, { sessionId: session.id, totalWords: active.words.length, correctWords: 0, percentage: 0 })
+    })()
+    return () => {
+      cancelled = true
+    }
+    // Only once per mount for this child/list — not on every word navigation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childId, family?.id, words !== null])
 
   const word = words?.[index] ?? ''
 

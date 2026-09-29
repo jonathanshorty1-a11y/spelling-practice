@@ -26,7 +26,18 @@
   "practiceComplete.stillNeeded": "{count} palabras todavía necesitan práctica.",
   "practiceComplete.readiness": "Preparación: {status}",
 
+  "dashboard.viewDetails": "Ver detalles",
+  "dashboard.finalReview": "Repaso final",
+  "dashboard.estimatedMinutes": "Unos {minutes} minutos",
+  "dashboard.weakWordsList": "Necesita practicar: {words}",
+
+  "recommendation.start_basics": "Comenzar a practicar",
+  "recommendation.smart_practice": "Seguir practicando",
+  "recommendation.final_review": "Repaso final",
+  "recommendation.light_review": "Repaso rápido",
+
   "parentArea.title": "Área de Padres",
+  "parentArea.dashboard": "Panel",
   "parentArea.children": "Hijos",
   "parentArea.lists": "Listas",
   "parentArea.progress": "Progreso",

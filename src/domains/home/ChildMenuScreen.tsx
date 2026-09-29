@@ -138,6 +138,26 @@ export function ChildMenuScreen() {
               ✏️ Practice Test
             </button>
           </div>
+
+          {/* Manual entry points alongside the automatic recommendation above —
+              the recommendation still decides what's "best right now", these
+              are always-available options regardless of it (spec: Quick
+              Practice needs no setup; Final Review can be used on demand
+              even when the test isn't imminent). */}
+          <div className="btn-row" style={{ maxWidth: 360, marginTop: 12 }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => navigate(`/child/${child.id}/practice`, { state: { practiceType: 'quick_practice' } })}
+            >
+              ⚡ Quick Practice
+            </button>
+            <button
+              className="btn btn-outline"
+              onClick={() => navigate(`/child/${child.id}/practice`, { state: { practiceType: 'final_review' } })}
+            >
+              🎯 Final Review
+            </button>
+          </div>
         </div>
       )}
     </div>

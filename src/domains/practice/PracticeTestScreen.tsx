@@ -15,7 +15,7 @@ import {
 import { completeSession, recordAnswer, startSession } from './practiceService'
 import { consumeFreeAnswer } from '../subscription/subscriptionService'
 import { trackEvent, type AnalyticsEventName } from '../analytics/analyticsService'
-import { speakSequence, speakWord } from '../speech/speechService'
+import { speakSequence, speakTestPrompt } from '../speech/speechService'
 import { ProgressBar } from '../../components/ProgressBar'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { themeNameForColor } from '../../lib/theme'
@@ -91,7 +91,7 @@ export function PracticeTestScreen() {
       setReadinessBefore(calculateReadiness(Array.from(mastery.values()), active.words.length))
 
       const sourceWords: QueueWordRef[] =
-        locationState.mistakeWords ?? active.words.map((w) => ({ id: w.id, word: w.word }))
+        locationState.mistakeWords ?? active.words.map((w) => ({ id: w.id, word: w.word, exampleSentence: w.exampleSentence }))
       const initialQueue = selectWordsForPracticeType(sourceWords, mastery, practiceType as QueuePracticeType)
       setQueue(initialQueue)
 
@@ -114,14 +114,13 @@ export function PracticeTestScreen() {
 
   const currentWord = queue?.[index]
 
-  // ---- Speak "Number X" + word twice whenever a fresh question loads ----
+  // ---- Speak "Number X", then the word (+ example sentence if the word has
+  // one, via speakTestPrompt — optional, never blocks the flow either way) ----
   useEffect(() => {
     if (!currentWord) return
-    speakSequence([
-      { text: `Number ${index + 1}`, rate: 0.85 },
-      { text: currentWord.word, rate: 0.78 },
-      { text: currentWord.word, rate: 0.78 },
-    ])
+    speakSequence([{ text: `Number ${index + 1}`, rate: 0.85 }], () =>
+      speakTestPrompt(currentWord.word, currentWord.exampleSentence),
+    )
     setTimeout(() => inputRef.current?.focus(), 50)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, currentWord?.id])
@@ -359,7 +358,11 @@ export function PracticeTestScreen() {
             spellCheck={false}
           />
 
-          <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => speakWord(currentWord.word, { times: 2 })}>
+          <button
+            className="btn btn-secondary"
+            style={{ width: '100%' }}
+            onClick={() => speakTestPrompt(currentWord.word, currentWord.exampleSentence)}
+          >
             🔊 Listen Again
           </button>
 
@@ -369,7 +372,7 @@ export function PracticeTestScreen() {
                 Need help?
               </p>
               <div className="btn-row">
-                <button className="btn btn-outline" onClick={() => speakWord(currentWord.word, { times: 2 })}>
+                <button className="btn btn-outline" onClick={() => speakTestPrompt(currentWord.word, currentWord.exampleSentence)}>
                   Hear Again
                 </button>
                 <button className="btn btn-outline" onClick={handleShowFirstLetter}>

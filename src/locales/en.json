@@ -26,7 +26,18 @@
   "practiceComplete.stillNeeded": "{count} words still need practice.",
   "practiceComplete.readiness": "Readiness: {status}",
 
+  "dashboard.viewDetails": "View Details",
+  "dashboard.finalReview": "Final Review",
+  "dashboard.estimatedMinutes": "About {minutes} minutes",
+  "dashboard.weakWordsList": "Needs practice: {words}",
+
+  "recommendation.start_basics": "Start Practicing",
+  "recommendation.smart_practice": "Continue Practice",
+  "recommendation.final_review": "Final Review",
+  "recommendation.light_review": "Quick Review",
+
   "parentArea.title": "Parent Area",
+  "parentArea.dashboard": "Dashboard",
   "parentArea.children": "Children",
   "parentArea.lists": "Lists",
   "parentArea.progress": "Progress",

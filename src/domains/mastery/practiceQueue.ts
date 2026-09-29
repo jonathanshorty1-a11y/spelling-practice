@@ -4,6 +4,8 @@ import { isRecentlyIncorrect } from './masteryEngine'
 export interface QueueWordRef {
   id: string
   word: string
+  /** Optional — carried through only so PracticeTestScreen can pass it to speakTestPrompt(). Not used for weighting/ordering. */
+  exampleSentence?: string | null
 }
 
 /**

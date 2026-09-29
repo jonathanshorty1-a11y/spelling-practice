@@ -7,6 +7,7 @@ import { getActiveListForChild, getListHistory } from '../weeklyLists/weeklyList
 import { getSessionHistory } from '../practice/practiceService'
 import { getMasteryForList } from '../mastery/masteryService'
 import { calculateReadiness } from '../mastery/readiness'
+import { getRecommendedPractice, type RecommendedPracticeType } from '../mastery/recommendedPractice'
 import { signOut } from '../auth/authService'
 import { isCurrentUserAdmin } from '../admin/adminService'
 import { setParentLanguage as setParentLanguageService } from '../family/familyService'
@@ -14,7 +15,12 @@ import type { ParentLanguage, PracticeSession, ReadinessSummary, WeeklyList, Wor
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { useT } from '../../lib/i18n'
 
-type Section = 'children' | 'lists' | 'progress' | 'account' | 'subscription' | 'settings'
+type Section = 'dashboard' | 'children' | 'lists' | 'progress' | 'account' | 'subscription' | 'settings'
+
+function formatTestDate(iso: string): string {
+  const date = new Date(`${iso}T00:00:00`)
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+}
 
 function PinGate({ onUnlocked }: { onUnlocked: () => void }) {
   const { unlockParentArea } = useFamily()
@@ -44,6 +50,126 @@ function PinGate({ onUnlocked }: { onUnlocked: () => void }) {
       <button className="btn btn-primary" onClick={handleSubmit} disabled={pin.length !== 4}>
         Unlock
       </button>
+    </div>
+  )
+}
+
+interface DashboardChildData {
+  hasList: boolean
+  testDate: string | null
+  readiness: ReadinessSummary | null
+  weakWords: string[]
+  recommendationType: RecommendedPracticeType | null
+  estimatedMinutes: number | null
+}
+
+const RECOMMENDATION_KEY: Record<RecommendedPracticeType, string> = {
+  start_basics: 'recommendation.start_basics',
+  smart_practice: 'recommendation.smart_practice',
+  final_review: 'recommendation.final_review',
+  light_review: 'recommendation.light_review',
+}
+
+/**
+ * The main view of Parent Area (spec: "convierte el dashboard de
+ * mastery/readiness en la vista principal, no una pestaña secundaria").
+ * One glanceable card per child: name, test date, readiness, X/Y mastered,
+ * the words currently holding them back, the engine's current
+ * recommendation, and two actions — Practice Weak Words (jumps straight
+ * into practice) and View Details (drops into the full Progress
+ * breakdown/session history below, unchanged).
+ */
+function DashboardSection({ onViewDetails }: { onViewDetails: () => void }) {
+  const navigate = useNavigate()
+  const { mode, children } = useFamily()
+  const { t } = useT()
+  const [dataByChild, setDataByChild] = useState<Record<string, DashboardChildData>>({})
+
+  useEffect(() => {
+    Promise.all(
+      children.map(async (c) => {
+        const activeList = await getActiveListForChild(mode, c.id)
+        if (!activeList) {
+          return [c.id, { hasList: false, testDate: null, readiness: null, weakWords: [], recommendationType: null, estimatedMinutes: null }] as const
+        }
+        const mastery = await getMasteryForList(mode, c.id, activeList.list.id)
+        const readiness = calculateReadiness(Array.from(mastery.values()), activeList.words.length)
+        const weakWords = activeList.words.filter((w) => mastery.get(w.id)?.status !== 'mastered').map((w) => w.word)
+        const recommendation = getRecommendedPractice({ readiness, testDate: activeList.list.testDate })
+        return [
+          c.id,
+          {
+            hasList: true,
+            testDate: activeList.list.testDate,
+            readiness,
+            weakWords,
+            recommendationType: recommendation.type,
+            estimatedMinutes: recommendation.estimatedMinutes,
+          },
+        ] as const
+      }),
+    ).then((entries) => setDataByChild(Object.fromEntries(entries)))
+  }, [mode, children])
+
+  return (
+    <div className="stack">
+      {children.map((c) => {
+        const data = dataByChild[c.id]
+        return (
+          <div key={c.id} className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong style={{ fontSize: '1.1rem' }}>
+                {c.avatar} {c.name}
+              </strong>
+              {data?.readiness && <span className="pill">{t(`readiness.${data.readiness.status}`)}</span>}
+            </div>
+
+            {!data ? (
+              <p className="muted">…</p>
+            ) : !data.hasList ? (
+              <p className="muted">{t('dashboard.noListYet')}</p>
+            ) : (
+              <>
+                {data.testDate && (
+                  <p className="muted" style={{ margin: '6px 0 0 0' }}>{t('dashboard.testDate', { date: formatTestDate(data.testDate) })}</p>
+                )}
+
+                <p style={{ fontWeight: 700, margin: '10px 0 0 0' }}>
+                  {t('dashboard.masteredOf', { mastered: data.readiness!.masteredCount, total: data.readiness!.total })}
+                </p>
+
+                {data.weakWords.length > 0 && (
+                  <p className="muted" style={{ margin: '4px 0 0 0' }}>
+                    {t('dashboard.weakWordsList', { words: data.weakWords.join(', ') })}
+                  </p>
+                )}
+
+                {data.recommendationType && (
+                  <p className="muted" style={{ margin: '10px 0 0 0' }}>
+                    {t(RECOMMENDATION_KEY[data.recommendationType])} — {t('dashboard.estimatedMinutes', { minutes: data.estimatedMinutes ?? 0 })}
+                  </p>
+                )}
+
+                <div className="btn-row" style={{ marginTop: 14 }}>
+                  {data.weakWords.length > 0 && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => navigate(`/child/${c.id}/practice`, { state: { practiceType: 'weak_words' } })}
+                    >
+                      {t('dashboard.practiceWeakWords')}
+                    </button>
+                  )}
+                  <button className="btn btn-outline" onClick={onViewDetails}>
+                    {t('dashboard.viewDetails')}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      })}
+
+      {children.length === 0 && <p className="muted">Add a child to see their dashboard here.</p>}
     </div>
   )
 }
@@ -384,6 +510,7 @@ function SettingsSection() {
 }
 
 const SECTION_LABEL_KEY: Record<Section, string> = {
+  dashboard: 'parentArea.dashboard',
   children: 'parentArea.children',
   lists: 'parentArea.lists',
   progress: 'parentArea.progress',
@@ -396,7 +523,7 @@ export function ParentAreaScreen() {
   const navigate = useNavigate()
   const { hasParentPin, isParentUnlocked, lockParentArea } = useFamily()
   const { t } = useT()
-  const [section, setSection] = useState<Section>('children')
+  const [section, setSection] = useState<Section>('dashboard')
   const [unlockedThisVisit, setUnlockedThisVisit] = useState(isParentUnlocked)
 
   const locked = hasParentPin && !isParentUnlocked && !unlockedThisVisit
@@ -423,7 +550,7 @@ export function ParentAreaScreen() {
       ) : (
         <div className="content">
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {(['children', 'lists', 'progress', 'account', 'subscription', 'settings'] as Section[]).map((s) => (
+            {(['dashboard', 'children', 'lists', 'progress', 'account', 'subscription', 'settings'] as Section[]).map((s) => (
               <button
                 key={s}
                 className={section === s ? 'btn btn-primary' : 'btn btn-secondary'}
@@ -435,6 +562,7 @@ export function ParentAreaScreen() {
             ))}
           </div>
 
+          {section === 'dashboard' && <DashboardSection onViewDetails={() => setSection('progress')} />}
           {section === 'children' && <ChildrenSection />}
           {section === 'lists' && <ListsSection />}
           {section === 'progress' && <ProgressSection />}
